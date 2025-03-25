@@ -1,0 +1,80 @@
+"use client"
+
+import { Card, CardContent } from "@/components/ui/card"
+import { AlertCircle, Clock, CheckCircle, Users, TrendingUp } from "lucide-react"
+
+export function StatsBar() {
+  // In a real app, these would be fetched from the backend
+  const stats = {
+    reported: 42,
+    inProgress: 18,
+    completed: 76,
+    activeUsers: 124,
+    completionRate: 83,
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center p-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-500">
+            <AlertCircle className="h-4 w-4" />
+          </div>
+          <div className="mt-2 text-center">
+            <div className="text-2xl font-bold">{stats.reported}</div>
+            <p className="text-xs text-muted-foreground">Reported</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center p-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 text-yellow-500">
+            <Clock className="h-4 w-4" />
+          </div>
+          <div className="mt-2 text-center">
+            <div className="text-2xl font-bold">{stats.inProgress}</div>
+            <p className="text-xs text-muted-foreground">In Progress</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center p-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-500">
+            <CheckCircle className="h-4 w-4" />
+          </div>
+          <div className="mt-2 text-center">
+            <div className="text-2xl font-bold">{stats.completed}</div>
+            <p className="text-xs text-muted-foreground">Completed</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center p-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-500">
+            <Users className="h-4 w-4" />
+          </div>
+          <div className="mt-2 text-center">
+            <div className="text-2xl font-bold">{stats.activeUsers}</div>
+            <p className="text-xs text-muted-foreground">Active Users</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center p-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-500">
+            <TrendingUp className="h-4 w-4" />
+          </div>
+          <div className="mt-2 text-center">
+            <div className="text-2xl font-bold">{stats.completionRate}%</div>
+            <p className="text-xs text-muted-foreground">Completion Rate</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
