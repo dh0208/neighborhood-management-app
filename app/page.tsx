@@ -1,10 +1,12 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { Issues } from "@/components/issues"
 import { ReportIssueButton } from "@/components/report-issue-button"
 import { MapPreview } from "@/components/map-preview"
 import { UserAuthButton } from "@/components/user-auth-button"
-import { FilterBar } from "@/components/filter-bar"
 import { StatsBar } from "@/components/stats-bar"
+import { contactData, activityData } from "@/lib/data"
 
 export default function HomePage() {
   return (
@@ -47,7 +49,6 @@ export default function HomePage() {
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
             <StatsBar />
-            <FilterBar />
             <MapPreview />
             <Issues />
           </div>
@@ -57,33 +58,17 @@ export default function HomePage() {
               <div className="p-6">
                 <h3 className="mb-4 text-xl font-semibold">Municipal Contacts</h3>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Public Works Department</p>
-                      <p className="text-sm text-muted-foreground">For infrastructure issues</p>
+                  {contactData.map((contact) => (
+                    <div key={contact.id} className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{contact.department}</p>
+                        <p className="text-sm text-muted-foreground">{contact.description}</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => window.open(`mailto:${contact.email}`)}>
+                        Contact
+                      </Button>
                     </div>
-                    <Button variant="outline" size="sm">
-                      Contact
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Parks & Recreation</p>
-                      <p className="text-sm text-muted-foreground">For issues in parks</p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Contact
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">City Sanitation</p>
-                      <p className="text-sm text-muted-foreground">For trash and cleanliness issues</p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Contact
-                    </Button>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -92,18 +77,14 @@ export default function HomePage() {
               <div className="p-6">
                 <h3 className="mb-4 text-xl font-semibold">Recent Activity</h3>
                 <div className="space-y-4">
-                  <div className="space-y-1">
-                    <p className="font-medium">Pothole reported on Main St.</p>
-                    <p className="text-sm text-muted-foreground">2 hours ago by John Doe</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="font-medium">Status update: Streetlight repair</p>
-                    <p className="text-sm text-muted-foreground">3 hours ago by City Works</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="font-medium">Graffiti cleaned at Central Park</p>
-                    <p className="text-sm text-muted-foreground">Yesterday by Cleanup Crew</p>
-                  </div>
+                  {activityData.map((activity) => (
+                    <div key={activity.id} className="space-y-1">
+                      <p className="font-medium">{activity.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(activity.timestamp).toLocaleString()} by {activity.user}
+                      </p>
+                    </div>
+                  ))}
                 </div>
                 <Button variant="outline" className="mt-4 w-full">
                   View All Activity

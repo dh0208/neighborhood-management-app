@@ -24,6 +24,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { useAppStore } from "@/lib/store"
 
 const formSchema = z.object({
   title: z.string().min(2, { message: "Title must be at least 2 characters." }),
@@ -37,6 +38,7 @@ export function ReportIssueButton() {
   const [location, setLocation] = useState({ lat: 40.7128, lng: -74.006 })
   const [images, setImages] = useState<string[]>([])
   const { toast } = useToast()
+  const addIssue = useAppStore((state) => state.addIssue)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -49,12 +51,24 @@ export function ReportIssueButton() {
   })
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    // In a real app, this would send the report to the backend
-    console.log({
-      ...values,
+    // Create a new issue with the form values
+    const newIssue = {
+      title: values.title,
+      description: values.description,
+      category: values.category as any,
+      status: "reported" as const,
+      location: values.location,
       coordinates: location,
-      images,
-    })
+      reportedBy: "You",
+      reportedAt: new Date().toISOString(),
+      votes: 0,
+      comments: 0,
+      images: images.length > 0 ? images : ["/placeholder.svg?height=200&width=350"],
+      progress: 0,
+    }
+
+    // Add the new issue to the store
+    addIssue(newIssue)
 
     toast({
       title: "Issue reported successfully",

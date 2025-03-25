@@ -6,66 +6,44 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Textarea } from "@/components/ui/textarea"
 import { SendHorizontal } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import type { Comment } from "@/lib/types"
+import { useAppStore } from "@/lib/store"
 
 interface CommentSectionProps {
   issueId: number
 }
 
-// Sample comment data
-const commentData = [
-  {
-    id: 1,
-    issueId: 1,
-    author: "Jane Smith",
-    avatarUrl: "/placeholder.svg?height=32&width=32",
-    content: "I drive by this pothole every day. It's getting larger and has already damaged several cars.",
-    timestamp: "2023-04-10T16:30:00Z",
-  },
-  {
-    id: 2,
-    issueId: 1,
-    author: "City Works Dept",
-    avatarUrl: "/placeholder.svg?height=32&width=32",
-    content: "Thank you for reporting this issue. We have scheduled repairs for next week.",
-    timestamp: "2023-04-11T09:15:00Z",
-    isOfficial: true,
-  },
-  {
-    id: 3,
-    issueId: 2,
-    author: "Michael Brown",
-    avatarUrl: "/placeholder.svg?height=32&width=32",
-    content: "This has been an issue for a while. It's very dark at night and feels unsafe.",
-    timestamp: "2023-04-08T19:45:00Z",
-  },
-  {
-    id: 4,
-    issueId: 3,
-    author: "Community Center Director",
-    avatarUrl: "/placeholder.svg?height=32&width=32",
-    content: "Thank you all for reporting this issue. The graffiti has been removed and the wall repainted.",
-    timestamp: "2023-04-06T14:20:00Z",
-    isOfficial: true,
-  },
-]
-
 export function CommentSection({ issueId }: CommentSectionProps) {
-  const [comment, setComment] = useState("")
+  const [commentText, setCommentText] = useState("")
   const { toast } = useToast()
+  const comments = useAppStore((state) => state.comments)
+  const addComment = useAppStore((state) => state.addComment)
 
   // Filter comments for the current issue
-  const issueComments = commentData.filter((c) => c.issueId === issueId)
+  const issueComments = comments.filter((c) => c.issueId === issueId)
 
   const handleAddComment = () => {
-    if (!comment.trim()) return
+    if (!commentText.trim()) return
 
-    // In a real app, this would send the comment to the backend
+    // Create a new comment
+    const newComment: Omit<Comment, "id"> = {
+      issueId,
+      author: "You",
+      avatarUrl: "/placeholder.svg?height=32&width=32",
+      content: commentText,
+      timestamp: new Date().toISOString(),
+    }
+
+    // Add the comment to the store
+    addComment(newComment)
+
+    // Show success toast
     toast({
       title: "Comment added",
       description: "Your comment has been posted successfully.",
     })
 
-    setComment("")
+    setCommentText("")
   }
 
   const formatTimestamp = (timestamp: string) => {
@@ -122,8 +100,8 @@ export function CommentSection({ issueId }: CommentSectionProps) {
           <div className="flex-1">
             <Textarea
               placeholder="Add a comment..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
               className="min-h-[60px] sm:min-h-[80px] resize-none text-sm"
             />
           </div>
@@ -133,7 +111,7 @@ export function CommentSection({ issueId }: CommentSectionProps) {
             className="gap-1 sm:gap-2 text-xs sm:text-sm"
             size="sm"
             onClick={handleAddComment}
-            disabled={!comment.trim()}
+            disabled={!commentText.trim()}
           >
             Post Comment
             <SendHorizontal className="h-3 w-3 sm:h-4 sm:w-4" />

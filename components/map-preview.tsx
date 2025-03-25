@@ -1,8 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Maximize2, Minimize2 } from "lucide-react"
+import { Maximize2, Minimize2, Layers } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import type { MapLayer } from "@/lib/types"
 
 // Sample issue data
 const issueMarkers = [
@@ -15,6 +25,14 @@ const issueMarkers = [
 export function MapPreview() {
   const [expanded, setExpanded] = useState(false)
   const [selectedIssue, setSelectedIssue] = useState<number | null>(null)
+  const { toast } = useToast()
+  const [mapLayers, setMapLayers] = useState<MapLayer[]>([
+    { id: "reported", name: "Reported Issues", enabled: true, color: "bg-red-500" },
+    { id: "in_progress", name: "In Progress Issues", enabled: true, color: "bg-yellow-500" },
+    { id: "completed", name: "Completed Issues", enabled: true, color: "bg-green-500" },
+    { id: "municipal", name: "Municipal Buildings", enabled: false, color: "bg-blue-500" },
+    { id: "parks", name: "Parks & Recreation", enabled: false, color: "bg-green-700" },
+  ])
 
   const getMarkerColor = (status: string) => {
     switch (status) {
@@ -42,6 +60,32 @@ export function MapPreview() {
     }
   }
 
+  const toggleLayer = useCallback(
+    (layerId: string) => {
+      setMapLayers((prevLayers) =>
+        prevLayers.map((layer) => (layer.id === layerId ? { ...layer, enabled: !layer.enabled } : layer)),
+      )
+
+      // Show toast for layer toggle
+      const layer = mapLayers.find((l) => l.id === layerId)
+      if (layer) {
+        toast({
+          title: `${layer.name} ${!layer.enabled ? "Enabled" : "Disabled"}`,
+          description: `${!layer.enabled ? "Showing" : "Hiding"} ${layer.name.toLowerCase()} on the map.`,
+        })
+      }
+    },
+    [mapLayers, toast],
+  )
+
+  const handleViewDetails = (id: number) => {
+    toast({
+      title: "Issue Details",
+      description: "Opening issue details view.",
+    })
+    // In a real app, this would navigate to the issue details page
+  }
+
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
       <div className="flex items-center justify-between p-4 sm:p-6">
@@ -56,53 +100,82 @@ export function MapPreview() {
           <div className="absolute inset-0 flex items-center justify-center text-slate-400">Interactive Map View</div>
 
           {/* Issue markers */}
-          {issueMarkers.map((marker) => (
-            <div
-              key={marker.id}
-              className={`absolute cursor-pointer transform -translate-x-1/2 -translate-y-1/2 transition-all ${
-                selectedIssue === marker.id ? "z-10 scale-125" : "z-0"
-              }`}
-              style={{
-                left: `${50 + (marker.lng + 74.006) * 1000}%`,
-                top: `${50 + (marker.lat - 40.7128) * 1000}%`,
-              }}
-              onClick={() => setSelectedIssue(marker.id === selectedIssue ? null : marker.id)}
-            >
-              <div className={`h-4 w-4 rounded-full ${getMarkerColor(marker.status)} ring-2 ring-white`}></div>
+          {issueMarkers.map((marker) => {
+            const layerEnabled = mapLayers.find((l) => l.id === marker.status)?.enabled ?? true
+            if (!layerEnabled) return null
 
-              {selectedIssue === marker.id && (
-                <div className="absolute top-5 left-1/2 transform -translate-x-1/2 bg-white rounded-md shadow-lg p-2 min-w-[150px] z-20">
-                  <div className="text-sm font-medium">
-                    {marker.type.charAt(0).toUpperCase() + marker.type.slice(1)}
+            return (
+              <div
+                key={marker.id}
+                className={`absolute cursor-pointer transform -translate-x-1/2 -translate-y-1/2 transition-all ${
+                  selectedIssue === marker.id ? "z-10 scale-125" : "z-0"
+                }`}
+                style={{
+                  left: `${50 + (marker.lng + 74.006) * 1000}%`,
+                  top: `${50 + (marker.lat - 40.7128) * 1000}%`,
+                }}
+                onClick={() => setSelectedIssue(marker.id === selectedIssue ? null : marker.id)}
+              >
+                <div className={`h-4 w-4 rounded-full ${getMarkerColor(marker.status)} ring-2 ring-white`}></div>
+
+                {selectedIssue === marker.id && (
+                  <div className="absolute top-5 left-1/2 transform -translate-x-1/2 bg-white rounded-md shadow-lg p-2 min-w-[150px] z-20">
+                    <div className="text-sm font-medium">
+                      {marker.type.charAt(0).toUpperCase() + marker.type.slice(1)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Status: {getStatusText(marker.status)}</div>
+                    <Button
+                      size="sm"
+                      variant="link"
+                      className="text-xs p-0 h-auto mt-1"
+                      onClick={() => handleViewDetails(marker.id)}
+                    >
+                      View Details
+                    </Button>
                   </div>
-                  <div className="text-xs text-muted-foreground">Status: {getStatusText(marker.status)}</div>
-                  <Button size="sm" variant="link" className="text-xs p-0 h-auto mt-1">
-                    View Details
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
       <div className="flex flex-wrap justify-between items-center p-3 sm:p-4 border-t">
         <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm mb-2 sm:mb-0">
-          <div className="flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-red-500"></div>
-            <span className="text-xs">Reported</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-            <span className="text-xs">In Progress</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-green-500"></div>
-            <span className="text-xs">Completed</span>
-          </div>
+          {mapLayers.slice(0, 3).map(
+            (layer) =>
+              layer.enabled && (
+                <div key={layer.id} className="flex items-center gap-1.5">
+                  <div className={`h-3 w-3 rounded-full ${layer.color}`}></div>
+                  <span className="text-xs">{layer.name.replace(" Issues", "")}</span>
+                </div>
+              ),
+          )}
         </div>
-        <Button size="sm" variant="outline" className="text-xs">
-          Toggle Layers
-        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="outline" className="text-xs gap-1">
+              <Layers className="h-3 w-3 sm:h-4 sm:w-4" />
+              Toggle Layers
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Map Layers</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {mapLayers.map((layer) => (
+              <DropdownMenuCheckboxItem
+                key={layer.id}
+                checked={layer.enabled}
+                onCheckedChange={() => toggleLayer(layer.id)}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={`h-2 w-2 rounded-full ${layer.color}`}></div>
+                  <span>{layer.name}</span>
+                </div>
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   )

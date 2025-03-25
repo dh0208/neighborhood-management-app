@@ -2,16 +2,11 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertCircle, Clock, CheckCircle, Users, TrendingUp } from "lucide-react"
+import { statsData } from "@/lib/data"
 
 export function StatsBar() {
-  // In a real app, these would be fetched from the backend
-  const stats = {
-    reported: 42,
-    inProgress: 18,
-    completed: 76,
-    activeUsers: 124,
-    completionRate: 83,
-  }
+  // Use the stats from our data file
+  const stats = statsData
 
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-5 md:gap-4">

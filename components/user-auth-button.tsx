@@ -26,19 +26,31 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
+import { useAppStore } from "@/lib/store"
+import { ProfileDialog } from "./profile-dialog"
+import { SettingsDialog } from "./settings-dialog"
+import { MyReportsDialog } from "./my-reports-dialog"
 
 export function UserAuthButton() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const { toast } = useToast()
 
+  const isLoggedIn = useAppStore((state) => state.isLoggedIn)
+  const user = useAppStore((state) => state.user)
+  const login = useAppStore((state) => state.login)
+  const logout = useAppStore((state) => state.logout)
+
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [myReportsOpen, setMyReportsOpen] = useState(false)
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
     // In a real app, this would authenticate with a backend
     if (email && password) {
-      setIsLoggedIn(true)
+      login(email, password)
       setIsLoginOpen(false)
       setEmail("")
       setPassword("")
@@ -50,7 +62,7 @@ export function UserAuthButton() {
   }
 
   const handleLogout = () => {
-    setIsLoggedIn(false)
+    logout()
     toast({
       title: "Logged out",
       description: "You have been logged out successfully",
@@ -100,27 +112,33 @@ export function UserAuthButton() {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src="/placeholder.svg?height=40&width=40" alt="User avatar" />
-            <AvatarFallback>JD</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end">
-        <DropdownMenuLabel>My Account</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem>Profile</DropdownMenuItem>
-          <DropdownMenuItem>My Reports</DropdownMenuItem>
-          <DropdownMenuItem>Settings</DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={user?.avatar || "/placeholder.svg?height=40&width=40"} alt="User avatar" />
+              <AvatarFallback>{user?.name.charAt(0) || "U"}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="end">
+          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={() => setProfileOpen(true)}>Profile</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setMyReportsOpen(true)}>My Reports</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSettingsOpen(true)}>Settings</DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <MyReportsDialog open={myReportsOpen} onOpenChange={setMyReportsOpen} />
+    </>
   )
 }
 
