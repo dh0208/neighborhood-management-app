@@ -51,9 +51,9 @@ export function ImageUpload({ images, onChange, maxImages = 3 }: ImageUploadProp
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 max-w-full overflow-hidden">
         {images.map((image, index) => (
-          <div key={index} className="relative h-24 w-24 rounded-md border overflow-hidden">
+          <div key={index} className="relative h-20 w-20 sm:h-24 sm:w-24 rounded-md border overflow-hidden">
             <img
               src={image || "/placeholder.svg"}
               alt={`Uploaded image ${index + 1}`}
@@ -72,7 +72,7 @@ export function ImageUpload({ images, onChange, maxImages = 3 }: ImageUploadProp
         {images.length < maxImages && (
           <label
             className={cn(
-              "flex h-24 w-24 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed",
+              "flex h-20 w-20 sm:h-24 sm:w-24 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed",
               isLoading ? "opacity-50" : "hover:border-primary",
             )}
           >

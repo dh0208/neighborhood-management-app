@@ -79,7 +79,7 @@ export function ReportIssueButton() {
           Report an Issue
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto p-4 md:p-6">
         <DialogHeader>
           <DialogTitle>Report a Neighborhood Issue</DialogTitle>
           <DialogDescription>
@@ -89,7 +89,7 @@ export function ReportIssueButton() {
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2 md:py-4">
             <FormField
               control={form.control}
               name="title"
@@ -146,7 +146,9 @@ export function ReportIssueButton() {
 
             <div className="space-y-2">
               <Label>Pin Location on Map</Label>
-              <MapPinPoint initialLocation={location} onLocationChange={updateLocation} />
+              <div className="max-w-full overflow-hidden">
+                <MapPinPoint initialLocation={location} onLocationChange={updateLocation} />
+              </div>
             </div>
 
             <FormField
@@ -169,8 +171,8 @@ export function ReportIssueButton() {
               <p className="text-xs text-muted-foreground">Upload up to 3 images to help describe the issue</p>
             </div>
 
-            <DialogFooter className={cn("pt-4", form.formState.isSubmitting ? "opacity-50" : "")}>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+            <DialogFooter className={cn("pt-2 md:pt-4", form.formState.isSubmitting ? "opacity-50" : "")}>
+              <Button type="submit" disabled={form.formState.isSubmitting} className="w-full sm:w-auto">
                 {form.formState.isSubmitting ? "Submitting..." : "Submit Report"}
               </Button>
             </DialogFooter>

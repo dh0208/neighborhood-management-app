@@ -63,13 +63,13 @@ export function UserAuthButton() {
         <DialogTrigger asChild>
           <Button>Login</Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] p-4 sm:p-6 max-w-[90vw]">
           <DialogHeader>
             <DialogTitle>Login to NeighborWatch</DialogTitle>
             <DialogDescription>Sign in to your account to report and track neighborhood issues.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleLogin} className="space-y-4 py-4">
-            <div className="space-y-2">
+          <form onSubmit={handleLogin} className="space-y-4 py-2 sm:py-4">
+            <div className="space-y-1 sm:space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"

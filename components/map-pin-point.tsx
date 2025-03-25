@@ -51,7 +51,7 @@ export function MapPinPoint({ initialLocation, onLocationChange }: MapPinPointPr
     <div className="space-y-2">
       <div
         ref={mapContainerRef}
-        className="relative h-[200px] w-full rounded-md border bg-slate-100 cursor-crosshair"
+        className="relative h-[150px] sm:h-[200px] w-full rounded-md border bg-slate-100 cursor-crosshair"
         onClick={handleMapClick}
       >
         <div className="absolute inset-0 flex items-center justify-center">
@@ -64,7 +64,13 @@ export function MapPinPoint({ initialLocation, onLocationChange }: MapPinPointPr
         </div>
       </div>
 
-      <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => setUseCurrentLocation(true)}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="text-xs w-full sm:w-auto"
+        onClick={() => setUseCurrentLocation(true)}
+      >
         Use Current Location
       </Button>
     </div>

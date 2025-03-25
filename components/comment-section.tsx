@@ -84,25 +84,28 @@ export function CommentSection({ issueId }: CommentSectionProps) {
       ) : (
         <div className="space-y-4">
           {issueComments.map((comment) => (
-            <div key={comment.id} className={`rounded-lg p-3 ${comment.isOfficial ? "bg-primary/5" : "bg-muted/50"}`}>
-              <div className="flex items-start gap-3">
-                <Avatar className="h-8 w-8">
+            <div
+              key={comment.id}
+              className={`rounded-lg p-2 sm:p-3 ${comment.isOfficial ? "bg-primary/5" : "bg-muted/50"}`}
+            >
+              <div className="flex items-start gap-2 sm:gap-3">
+                <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
                   <AvatarImage src={comment.avatarUrl} alt={comment.author} />
                   <AvatarFallback>{comment.author.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium">{comment.author}</p>
+                      <p className="text-xs sm:text-sm font-medium">{comment.author}</p>
                       {comment.isOfficial && (
                         <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                           Official
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">{formatTimestamp(comment.timestamp)}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">{formatTimestamp(comment.timestamp)}</p>
                   </div>
-                  <p className="text-sm">{comment.content}</p>
+                  <p className="text-xs sm:text-sm">{comment.content}</p>
                 </div>
               </div>
             </div>
@@ -111,8 +114,8 @@ export function CommentSection({ issueId }: CommentSectionProps) {
       )}
 
       <div className="mt-4 space-y-2">
-        <div className="flex items-start gap-3">
-          <Avatar className="h-8 w-8">
+        <div className="flex items-start gap-2 sm:gap-3">
+          <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
             <AvatarImage src="/placeholder.svg?height=32&width=32" alt="You" />
             <AvatarFallback>You</AvatarFallback>
           </Avatar>
@@ -121,14 +124,19 @@ export function CommentSection({ issueId }: CommentSectionProps) {
               placeholder="Add a comment..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="min-h-[80px] resize-none"
+              className="min-h-[60px] sm:min-h-[80px] resize-none text-sm"
             />
           </div>
         </div>
         <div className="flex justify-end">
-          <Button className="gap-2" size="sm" onClick={handleAddComment} disabled={!comment.trim()}>
+          <Button
+            className="gap-1 sm:gap-2 text-xs sm:text-sm"
+            size="sm"
+            onClick={handleAddComment}
+            disabled={!comment.trim()}
+          >
             Post Comment
-            <SendHorizontal className="h-4 w-4" />
+            <SendHorizontal className="h-3 w-3 sm:h-4 sm:w-4" />
           </Button>
         </div>
       </div>

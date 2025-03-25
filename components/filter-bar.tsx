@@ -33,7 +33,7 @@ export function FilterBar() {
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-      <div className="flex flex-col space-y-4 p-6">
+      <div className="flex flex-col space-y-4 p-4 sm:p-6">
         <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-x-4 sm:space-y-0">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -97,7 +97,7 @@ export function FilterBar() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 max-w-full overflow-hidden">
           {Object.entries(categories).map(
             ([category, isChecked]) =>
               isChecked && (

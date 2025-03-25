@@ -44,8 +44,8 @@ export function MapPreview() {
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-      <div className="flex items-center justify-between p-6">
-        <h3 className="text-xl font-semibold">Neighborhood Map</h3>
+      <div className="flex items-center justify-between p-4 sm:p-6">
+        <h3 className="text-lg sm:text-xl font-semibold">Neighborhood Map</h3>
         <Button variant="ghost" size="sm" onClick={() => setExpanded(!expanded)}>
           {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
         </Button>
@@ -85,8 +85,8 @@ export function MapPreview() {
           ))}
         </div>
       </div>
-      <div className="flex justify-between items-center p-4 border-t">
-        <div className="flex items-center gap-6 text-sm">
+      <div className="flex flex-wrap justify-between items-center p-3 sm:p-4 border-t">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm mb-2 sm:mb-0">
           <div className="flex items-center gap-1.5">
             <div className="h-3 w-3 rounded-full bg-red-500"></div>
             <span className="text-xs">Reported</span>
@@ -100,7 +100,7 @@ export function MapPreview() {
             <span className="text-xs">Completed</span>
           </div>
         </div>
-        <Button size="sm" variant="outline">
+        <Button size="sm" variant="outline" className="text-xs">
           Toggle Layers
         </Button>
       </div>
