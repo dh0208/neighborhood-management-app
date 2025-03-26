@@ -25,46 +25,37 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
 import { useAppStore } from "@/lib/store"
-import { ProfileDialog } from "./profile-dialog"
-import { SettingsDialog } from "./settings-dialog"
-import { MyReportsDialog } from "./my-reports-dialog"
+import { toast } from "sonner"
 
-export function UserAuthButton() {
+interface UserAuthButtonProps {
+  onShowMyReports?: () => void
+}
+
+export function UserAuthButton({ onShowMyReports }: UserAuthButtonProps) {
   const [isLoginOpen, setIsLoginOpen] = useState(false)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const { toast } = useToast()
+  const [name, setName] = useState("")
 
   const isLoggedIn = useAppStore((state) => state.isLoggedIn)
   const user = useAppStore((state) => state.user)
   const login = useAppStore((state) => state.login)
   const logout = useAppStore((state) => state.logout)
 
-  const [profileOpen, setProfileOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [myReportsOpen, setMyReportsOpen] = useState(false)
-
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-    // In a real app, this would authenticate with a backend
-    if (email && password) {
-      login(email, password)
+    if (name.trim()) {
+      login(name)
       setIsLoginOpen(false)
-      setEmail("")
-      setPassword("")
-      toast({
-        title: "Logged in successfully",
-        description: "Welcome back to NeighborWatch!",
+      setName("")
+      toast.success("Logged in successfully", {
+        description: `Welcome to NeighborWatch, ${name}!`,
       })
     }
   }
 
   const handleLogout = () => {
     logout()
-    toast({
-      title: "Logged out",
+    toast("Logged out", {
       description: "You have been logged out successfully",
     })
   }
@@ -78,31 +69,23 @@ export function UserAuthButton() {
         <DialogContent className="sm:max-w-[425px] p-4 sm:p-6 max-w-[90vw]">
           <DialogHeader>
             <DialogTitle>Login to NeighborWatch</DialogTitle>
-            <DialogDescription>Sign in to your account to report and track neighborhood issues.</DialogDescription>
+            <DialogDescription>Enter your name to report and track neighborhood issues.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleLogin} className="space-y-4 py-2 sm:py-4">
             <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="name">Your Name</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="your.email@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="name"
+                placeholder="Enter your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <DialogFooter>
+            <DialogFooter className="flex justify-between">
+              <Button variant="outline" type="button" onClick={() => setIsLoginOpen(false)}>
+                Cancel
+              </Button>
               <Button type="submit">Login</Button>
             </DialogFooter>
           </form>
@@ -126,19 +109,18 @@ export function UserAuthButton() {
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem onClick={() => setProfileOpen(true)}>Profile</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setMyReportsOpen(true)}>My Reports</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setSettingsOpen(true)}>Settings</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => toast.info("Profile feature coming soon")}>Profile</DropdownMenuItem>
+            <DropdownMenuItem onClick={onShowMyReports}>My Reports</DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-      <MyReportsDialog open={myReportsOpen} onOpenChange={setMyReportsOpen} />
     </>
   )
+}
+
+UserAuthButton.defaultProps = {
+  onShowMyReports: () => {},
 }
 

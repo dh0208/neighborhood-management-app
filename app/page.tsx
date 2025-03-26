@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Issues } from "@/components/issues"
 import { ReportIssueButton } from "@/components/report-issue-button"
@@ -9,10 +10,16 @@ import { StatsBar } from "@/components/stats-bar"
 import { contactData, activityData } from "@/lib/data"
 
 export default function HomePage() {
+  const [showMyReports, setShowMyReports] = useState(false)
+
+  const handleShowMyReports = () => {
+    setShowMyReports(true)
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between py-4 px-4 sm:px-6">
+        <div className="container flex h-16 items-center justify-between py-4 mx-auto">
           <div className="flex items-center gap-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -32,12 +39,12 @@ export default function HomePage() {
             <span className="text-xl font-bold">NeighborWatch</span>
           </div>
           <div className="flex items-center gap-4">
-            <UserAuthButton />
+            <UserAuthButton onShowMyReports={handleShowMyReports} />
           </div>
         </div>
       </header>
 
-      <main className="container py-6">
+      <main className="container py-6 mx-auto">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Community Issues Dashboard</h1>
@@ -50,7 +57,7 @@ export default function HomePage() {
           <div className="lg:col-span-2 space-y-6">
             <StatsBar />
             <MapPreview />
-            <Issues />
+            <Issues showMyReportsOnly={showMyReports} setShowMyReportsOnly={setShowMyReports} />
           </div>
 
           <div className="space-y-6">
@@ -86,9 +93,6 @@ export default function HomePage() {
                     </div>
                   ))}
                 </div>
-                <Button variant="outline" className="mt-4 w-full">
-                  View All Activity
-                </Button>
               </div>
             </div>
           </div>

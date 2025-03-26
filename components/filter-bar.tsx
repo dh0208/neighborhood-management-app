@@ -13,14 +13,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Filter, MapPin, Search, X } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Filter, Search, X } from "lucide-react"
 
 interface FilterBarProps {
   onFilterChange: (filters: {
     search: string
     categories: Record<string, boolean>
-    nearMe: boolean
   }) => void
 }
 
@@ -34,8 +32,6 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
     sidewalk: true,
     other: true,
   })
-  const [nearMe, setNearMe] = useState(false)
-  const { toast } = useToast()
 
   // Update parent component when filters change
   useEffect(() => {
@@ -43,31 +39,14 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
     onFilterChange({
       search: searchQuery,
       categories,
-      nearMe,
     })
-  }, [searchQuery, categories, nearMe, onFilterChange])
+  }, [searchQuery, categories, onFilterChange])
 
   const toggleCategory = (category: keyof typeof categories) => {
     setCategories((prev) => ({
       ...prev,
       [category]: !prev[category],
     }))
-  }
-
-  const handleNearMe = () => {
-    if (navigator.geolocation) {
-      setNearMe(true)
-      toast({
-        title: "Location Access",
-        description: "Using your current location to find nearby issues.",
-      })
-    } else {
-      toast({
-        title: "Location Error",
-        description: "Geolocation is not supported by your browser.",
-        variant: "destructive",
-      })
-    }
   }
 
   const clearSearch = () => {
@@ -77,10 +56,6 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       // Trigger search
-      toast({
-        title: "Search Results",
-        description: searchQuery ? `Showing results for "${searchQuery}"` : "Showing all issues",
-      })
     }
   }
 
@@ -152,11 +127,6 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
                 </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            <Button variant={nearMe ? "default" : "outline"} size="sm" className="h-9 gap-1" onClick={handleNearMe}>
-              <MapPin className="h-4 w-4" />
-              Near Me
-            </Button>
           </div>
         </div>
 
@@ -192,30 +162,8 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
               ),
           )}
 
-          {nearMe && (
-            <div className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-              Near Current Location
-              <button className="ml-1 rounded-full p-0.5 hover:bg-background/20" onClick={() => setNearMe(false)}>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
-                </svg>
-              </button>
-            </div>
-          )}
-
           {/* Only show Clear All if at least one filter is applied */}
-          {(Object.values(categories).some((isChecked) => !isChecked) || nearMe || searchQuery) && (
+          {(Object.values(categories).some((isChecked) => !isChecked) || searchQuery) && (
             <button
               className="text-xs text-muted-foreground hover:text-foreground"
               onClick={() => {
@@ -227,7 +175,6 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
                   sidewalk: true,
                   other: true,
                 })
-                setNearMe(false)
                 setSearchQuery("")
               }}
             >

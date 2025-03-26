@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Maximize2, Minimize2, Layers } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Maximize2, Layers } from "lucide-react"
+import { toast } from "sonner"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -23,9 +23,10 @@ const issueMarkers = [
 ]
 
 export function MapPreview() {
-  const [expanded, setExpanded] = useState(false)
+  const [fullscreen, setFullscreen] = useState(false)
   const [selectedIssue, setSelectedIssue] = useState<number | null>(null)
-  const { toast } = useToast()
+  const mapRef = useRef<HTMLDivElement>(null)
+
   const [mapLayers, setMapLayers] = useState<MapLayer[]>([
     { id: "reported", name: "Reported Issues", enabled: true, color: "bg-red-500" },
     { id: "in_progress", name: "In Progress Issues", enabled: true, color: "bg-yellow-500" },
@@ -33,6 +34,33 @@ export function MapPreview() {
     { id: "municipal", name: "Municipal Buildings", enabled: false, color: "bg-blue-500" },
     { id: "parks", name: "Parks & Recreation", enabled: false, color: "bg-green-700" },
   ])
+
+  // Handle fullscreen
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement && mapRef.current) {
+      mapRef.current.requestFullscreen().catch((err) => {
+        toast.error("Error attempting to enable fullscreen mode", {
+          description: err.message,
+        })
+      })
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen()
+      }
+    }
+  }
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setFullscreen(!!document.fullscreenElement)
+    }
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange)
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange)
+    }
+  }, [])
 
   const getMarkerColor = (status: string) => {
     switch (status) {
@@ -69,18 +97,16 @@ export function MapPreview() {
       // Show toast for layer toggle
       const layer = mapLayers.find((l) => l.id === layerId)
       if (layer) {
-        toast({
-          title: `${layer.name} ${!layer.enabled ? "Enabled" : "Disabled"}`,
+        toast(`${layer.name} ${!layer.enabled ? "Enabled" : "Disabled"}`, {
           description: `${!layer.enabled ? "Showing" : "Hiding"} ${layer.name.toLowerCase()} on the map.`,
         })
       }
     },
-    [mapLayers, toast],
+    [mapLayers],
   )
 
   const handleViewDetails = (id: number) => {
-    toast({
-      title: "Issue Details",
+    toast("Issue Details", {
       description: "Opening issue details view.",
     })
     // In a real app, this would navigate to the issue details page
@@ -90,11 +116,14 @@ export function MapPreview() {
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
       <div className="flex items-center justify-between p-4 sm:p-6">
         <h3 className="text-lg sm:text-xl font-semibold">Neighborhood Map</h3>
-        <Button variant="ghost" size="sm" onClick={() => setExpanded(!expanded)}>
-          {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        <Button variant="ghost" size="sm" onClick={toggleFullscreen}>
+          <Maximize2 className="h-4 w-4" />
         </Button>
       </div>
-      <div className={`relative ${expanded ? "h-[500px]" : "h-[300px]"} overflow-hidden border-t`}>
+      <div
+        ref={mapRef}
+        className={`relative h-[300px] ${fullscreen ? "fixed inset-0 z-50 h-screen w-screen" : ""} overflow-hidden border-t`}
+      >
         {/* Map simulation - in a real app, this would be an actual map */}
         <div className="absolute inset-0 bg-slate-100">
           <div className="absolute inset-0 flex items-center justify-center text-slate-400">Interactive Map View</div>
@@ -137,6 +166,12 @@ export function MapPreview() {
               </div>
             )
           })}
+
+          {fullscreen && (
+            <Button className="absolute top-4 right-4 z-50" onClick={() => document.exitFullscreen()}>
+              Exit Fullscreen
+            </Button>
+          )}
         </div>
       </div>
       <div className="flex flex-wrap justify-between items-center p-3 sm:p-4 border-t">

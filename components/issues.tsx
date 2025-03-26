@@ -4,22 +4,68 @@ import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import { MapPin, MessageSquare, ThumbsUp, AlertCircle, CheckCircle2, Clock } from "lucide-react"
-import { CommentSection } from "./comment-section"
+import {
+  MapPin,
+  ThumbsUp,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Trash2,
+  Edit,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
 import { FilterBar } from "./filter-bar"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import type { Issue } from "@/lib/types"
 import { useAppStore } from "@/lib/store"
+import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { ViewCommentsDialog } from "./view-comments-dialog"
 
-export function Issues() {
+// Update the component definition to accept props
+interface IssuesProps {
+  showMyReportsOnly?: boolean
+  setShowMyReportsOnly?: (value: boolean) => void
+}
+
+export function Issues({ showMyReportsOnly = false, setShowMyReportsOnly = () => {} }: IssuesProps) {
   const [activeTab, setActiveTab] = useState("all")
   const [selectedIssue, setSelectedIssue] = useState<number | null>(null)
+  const [editingIssue, setEditingIssue] = useState<number | null>(null)
+  const [editTitle, setEditTitle] = useState("")
+  const [editDescription, setEditDescription] = useState("")
+  const [editCategory, setEditCategory] = useState("")
+  const [commentText, setCommentText] = useState<Record<number, string>>({})
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [viewingCommentsForIssue, setViewingCommentsForIssue] = useState<Issue | null>(null)
+
   const issues = useAppStore((state) => state.issues)
-  const voteForIssue = useAppStore((state) => state.voteForIssue)
+  const comments = useAppStore((state) => state.comments)
+  const userVotes = useAppStore((state) => state.userVotes)
+  const user = useAppStore((state) => state.user)
+  const isLoggedIn = useAppStore((state) => state.isLoggedIn)
+  const toggleVote = useAppStore((state) => state.toggleVote)
+  const addComment = useAppStore((state) => state.addComment)
+  const progressIssue = useAppStore((state) => state.progressIssue)
+  const editIssue = useAppStore((state) => state.editIssue)
+  const deleteIssue = useAppStore((state) => state.deleteIssue)
+  const restoreIssue = useAppStore((state) => state.restoreIssue)
+
   const [filteredIssues, setFilteredIssues] = useState<Issue[]>(issues)
   const [filters, setFilters] = useState({
     search: "",
@@ -31,11 +77,9 @@ export function Issues() {
       sidewalk: true,
       other: true,
     },
-    nearMe: false,
   })
-  const { toast } = useToast()
 
-  // Apply filters and tab selection to issues
+  // Update the useEffect to use the prop
   useEffect(() => {
     let result = issues
 
@@ -58,20 +102,18 @@ export function Issues() {
       result = result.filter((issue) => issue.status === activeTab)
     }
 
-    // Filter by location (near me) - in a real app, this would use geolocation
-    if (filters.nearMe) {
-      // Simulate filtering by location - just take the first 3 issues
-      result = result.slice(0, 3)
+    // Filter by my reports only
+    if (showMyReportsOnly && user) {
+      result = result.filter((issue) => issue.reportedBy === user.name || issue.reportedBy === "You")
     }
 
     setFilteredIssues(result)
-  }, [issues, filters, activeTab])
+  }, [issues, filters, activeTab, showMyReportsOnly, user])
 
   const handleFilterChange = useCallback(
     (newFilters: {
       search: string
       categories: Record<string, boolean>
-      nearMe: boolean
     }) => {
       setFilters(newFilters)
     },
@@ -118,40 +160,156 @@ export function Issues() {
   }
 
   const getCategoryBadge = (category: string) => {
-    switch (category) {
-      case "pothole":
-        return <Badge variant="outline">Pothole</Badge>
-      case "streetlight":
-        return <Badge variant="outline">Streetlight</Badge>
-      case "graffiti":
-        return <Badge variant="outline">Graffiti</Badge>
-      case "trash":
-        return <Badge variant="outline">Trash/Litter</Badge>
-      case "sidewalk":
-        return <Badge variant="outline">Damaged Sidewalk</Badge>
-      default:
-        return <Badge variant="outline">{category}</Badge>
-    }
+    const displayName = category.charAt(0).toUpperCase() + category.slice(1)
+    return <Badge variant="outline">{displayName}</Badge>
   }
 
   const handleVote = (issueId: number) => {
-    voteForIssue(issueId)
+    if (!isLoggedIn) {
+      toast.error("Please log in to vote on issues")
+      return
+    }
 
-    toast({
-      title: "Vote Recorded",
-      description: "Thank you for supporting this issue.",
+    toggleVote(issueId)
+
+    const isVoted = userVotes[issueId]
+    if (isVoted) {
+      toast.info("Vote removed")
+    } else {
+      toast.success("Vote added")
+    }
+  }
+
+  const handleAddComment = (issueId: number) => {
+    if (!commentText[issueId]?.trim()) return
+    if (!isLoggedIn) {
+      toast.error("Please log in to add comments")
+      return
+    }
+
+    // Create a new comment
+    const newComment = {
+      issueId,
+      author: user?.name || "Anonymous",
+      avatarUrl: user?.avatar || "/placeholder.svg?height=32&width=32",
+      content: commentText[issueId],
+      timestamp: new Date().toISOString(),
+    }
+
+    // Add the comment to the store
+    addComment(newComment)
+
+    // Show success toast
+    toast.success("Comment added successfully")
+
+    // Clear the comment text
+    setCommentText((prev) => ({
+      ...prev,
+      [issueId]: "",
+    }))
+  }
+
+  const handleProgressIssue = (issueId: number) => {
+    const issue = issues.find((i) => i.id === issueId)
+    if (!issue) return
+
+    let nextStatus
+    if (issue.status === "reported") {
+      nextStatus = "in_progress"
+    } else if (issue.status === "in_progress") {
+      nextStatus = "completed"
+    } else {
+      return
+    }
+
+    progressIssue(issueId)
+    toast.success(`Issue moved to ${getStatusLabel(nextStatus)}`)
+  }
+
+  const handleDeleteIssue = (issueId: number) => {
+    const issueToDelete = issues.find((i) => i.id === issueId)
+    if (!issueToDelete) return
+
+    deleteIssue(issueId)
+
+    toast("Issue deleted", {
+      description: "The issue has been removed",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          restoreIssue(issueToDelete)
+          toast.success("Issue restored")
+        },
+      },
     })
+
+    setSelectedIssue(null)
+  }
+
+  const startEditIssue = (issue: Issue) => {
+    setEditingIssue(issue.id)
+    setEditTitle(issue.title)
+    setEditDescription(issue.description)
+    setEditCategory(issue.category)
+  }
+
+  const saveEditIssue = () => {
+    if (!editingIssue) return
+
+    editIssue(editingIssue, {
+      title: editTitle,
+      description: editDescription,
+      category: editCategory as any,
+    })
+
+    toast.success("Issue updated successfully")
+    setEditingIssue(null)
+  }
+
+  const cancelEditIssue = () => {
+    setEditingIssue(null)
+  }
+
+  const nextImage = (images: string[]) => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length)
+  }
+
+  const prevImage = (images: string[]) => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
   }
 
   const selectedIssueData = selectedIssue !== null ? issues.find((issue) => issue.id === selectedIssue) : null
+  const isUserIssue = (issue: Issue) => {
+    if (!user) return false
+    return issue.reportedBy === user.name || issue.reportedBy === "You"
+  }
 
+  const issueComments = (issueId: number) => {
+    return comments.filter((c) => c.issueId === issueId)
+  }
+
+  const handleViewComments = (issue: Issue) => {
+    setViewingCommentsForIssue(issue)
+  }
+
+  // Update the JSX to use the prop
   return (
     <>
       <FilterBar onFilterChange={handleFilterChange} />
 
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm mt-6">
-        <div className="p-6">
+        <div className="p-6 flex justify-between items-center">
           <h3 className="text-xl font-semibold">Reported Issues</h3>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={showMyReportsOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowMyReportsOnly(!showMyReportsOnly)}
+              disabled={!isLoggedIn}
+            >
+              {showMyReportsOnly ? "Showing My Reports" : "Show My Reports"}
+            </Button>
+          </div>
         </div>
         <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
           <div className="px-6">
@@ -214,6 +372,117 @@ export function Issues() {
                           </div>
                         </div>
                       )}
+
+                      {/* Action buttons for user's own issues */}
+                      {isUserIssue(issue) && (
+                        <div className="flex justify-between items-center border-t pt-3">
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => startEditIssue(issue)} className="gap-1">
+                              <Edit className="h-3.5 w-3.5" /> Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-500 hover:text-red-600 gap-1"
+                              onClick={() => handleDeleteIssue(issue.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Delete
+                            </Button>
+                          </div>
+
+                          {issue.status !== "completed" && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleProgressIssue(issue.id)}
+                              className="gap-1"
+                            >
+                              <ArrowRight className="h-3.5 w-3.5" />
+                              {issue.status === "reported" ? "Start Progress" : "Complete"}
+                            </Button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Comment section directly on the card */}
+                      <div className="space-y-3 pt-2 border-t">
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-sm font-medium">Comments ({issue.comments})</h4>
+                          {issue.comments > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs h-7 px-2"
+                              onClick={() => handleViewComments(issue)}
+                            >
+                              View All
+                            </Button>
+                          )}
+                        </div>
+
+                        {issueComments(issue.id).length > 0 && (
+                          <div className="space-y-2">
+                            <div className="bg-muted/50 rounded-lg p-2">
+                              <div className="flex items-start gap-2">
+                                <Avatar className="h-6 w-6">
+                                  <AvatarImage
+                                    src={issueComments(issue.id)[issueComments(issue.id).length - 1].avatarUrl}
+                                    alt={issueComments(issue.id)[issueComments(issue.id).length - 1].author}
+                                  />
+                                  <AvatarFallback>
+                                    {issueComments(issue.id)[issueComments(issue.id).length - 1].author.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-xs font-medium">
+                                      {issueComments(issue.id)[issueComments(issue.id).length - 1].author}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {new Date(
+                                        issueComments(issue.id)[issueComments(issue.id).length - 1].timestamp,
+                                      ).toLocaleString()}
+                                    </p>
+                                  </div>
+                                  <p className="text-xs line-clamp-2">
+                                    {issueComments(issue.id)[issueComments(issue.id).length - 1].content}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            {issueComments(issue.id).length > 1 && (
+                              <p className="text-xs text-muted-foreground">
+                                + {issueComments(issue.id).length - 1} more comment
+                                {issueComments(issue.id).length > 2 ? "s" : ""}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Comment input */}
+                        <div className="flex gap-2">
+                          <Textarea
+                            placeholder="Add a comment..."
+                            className="min-h-[60px] text-sm resize-none flex-1"
+                            value={commentText[issue.id] || ""}
+                            onChange={(e) =>
+                              setCommentText((prev) => ({
+                                ...prev,
+                                [issue.id]: e.target.value,
+                              }))
+                            }
+                            disabled={!isLoggedIn}
+                          />
+                          <Button
+                            size="sm"
+                            className="self-end"
+                            onClick={() => handleAddComment(issue.id)}
+                            disabled={!commentText[issue.id]?.trim() || !isLoggedIn}
+                          >
+                            Post
+                          </Button>
+                        </div>
+                      </div>
                     </CardContent>
 
                     <CardFooter className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-t p-3 sm:p-4 text-sm gap-3 sm:gap-0">
@@ -229,18 +498,13 @@ export function Issues() {
 
                       <div className="flex items-center gap-2 sm:gap-4">
                         <Button
-                          variant="ghost"
+                          variant={userVotes[issue.id] ? "default" : "ghost"}
                           size="sm"
-                          className="h-8 gap-1 text-muted-foreground"
+                          className="h-8 gap-1"
                           onClick={() => handleVote(issue.id)}
+                          disabled={!isLoggedIn}
                         >
                           <ThumbsUp className="h-4 w-4" /> {issue.votes}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 gap-1 text-muted-foreground">
-                          <MessageSquare className="h-4 w-4" /> {issue.comments}
-                        </Button>
-                        <Button size="sm" onClick={() => setSelectedIssue(issue.id)}>
-                          View Details
                         </Button>
                       </div>
                     </CardFooter>
@@ -252,196 +516,153 @@ export function Issues() {
         </Tabs>
       </div>
 
-      {/* Issue Details Dialog */}
+      {/* Edit Issue Dialog */}
+      <Dialog open={editingIssue !== null} onOpenChange={(open) => !open && cancelEditIssue()}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Issue</DialogTitle>
+            <DialogDescription>Make changes to your reported issue.</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-title">Title</Label>
+              <Input id="edit-title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="edit-category">Category</Label>
+              <Select value={editCategory} onValueChange={setEditCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pothole">Pothole</SelectItem>
+                  <SelectItem value="streetlight">Streetlight</SelectItem>
+                  <SelectItem value="graffiti">Graffiti</SelectItem>
+                  <SelectItem value="trash">Trash/Litter</SelectItem>
+                  <SelectItem value="sidewalk">Damaged Sidewalk</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex justify-between">
+            <Button variant="outline" onClick={cancelEditIssue}>
+              Cancel
+            </Button>
+            <Button onClick={saveEditIssue}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Viewer Dialog */}
       <Dialog open={selectedIssue !== null} onOpenChange={(open) => !open && setSelectedIssue(null)}>
         {selectedIssueData && (
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-lg sm:text-xl">{selectedIssueData.title}</DialogTitle>
+              <DialogTitle>{selectedIssueData.title}</DialogTitle>
               <DialogDescription className="flex items-center gap-1">
                 <MapPin className="h-3 w-3" /> {selectedIssueData.location}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-              {/* Main content section */}
-              <div className="md:col-span-2 space-y-6">
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Description</h4>
-                  <p className="text-sm">{selectedIssueData.description}</p>
+            {selectedIssueData.images.length > 0 && (
+              <div className="relative">
+                <div className="aspect-video overflow-hidden rounded-md border">
+                  <img
+                    src={selectedIssueData.images[currentImageIndex] || "/placeholder.svg"}
+                    alt={`Image ${currentImageIndex + 1} for ${selectedIssueData.title}`}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
-                {/* Images section - moved up on mobile for better visibility */}
-                {selectedIssueData.images.length > 0 && (
-                  <div className="md:hidden">
-                    <h4 className="text-sm font-medium mb-2">Images</h4>
-                    <div className="space-y-2">
-                      {selectedIssueData.images.map((image, index) => (
-                        <div key={index} className="overflow-hidden rounded-md border">
-                          <img
-                            src={image || "/placeholder.svg"}
-                            alt={`Image ${index + 1} for ${selectedIssueData.title}`}
-                            className="w-full object-cover"
-                          />
-                        </div>
-                      ))}
-                    </div>
+                {selectedIssueData.images.length > 1 && (
+                  <div className="absolute inset-x-0 top-1/2 flex justify-between -translate-y-1/2 px-2">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-8 w-8 rounded-full opacity-80"
+                      onClick={() => prevImage(selectedIssueData.images)}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-8 w-8 rounded-full opacity-80"
+                      onClick={() => nextImage(selectedIssueData.images)}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
                 )}
 
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Status Timeline</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-3 w-3 rounded-full bg-red-500 ring-2 ring-red-100`}></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Reported</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(selectedIssueData.reportedAt).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-
-                    {selectedIssueData.status === "in_progress" || selectedIssueData.status === "completed" ? (
-                      <div className="flex items-center gap-3">
-                        <div className={`h-3 w-3 rounded-full bg-yellow-500 ring-2 ring-yellow-100`}></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">In Progress</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(new Date(selectedIssueData.reportedAt).getTime() + 86400000).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {selectedIssueData.status === "completed" ? (
-                      <div className="flex items-center gap-3">
-                        <div className={`h-3 w-3 rounded-full bg-green-500 ring-2 ring-green-100`}></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Completed</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(new Date(selectedIssueData.reportedAt).getTime() + 172800000).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    ) : null}
+                {selectedIssueData.images.length > 1 && (
+                  <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1">
+                    {selectedIssueData.images.map((_, index) => (
+                      <div
+                        key={index}
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          index === currentImageIndex ? "bg-primary" : "bg-muted"
+                        }`}
+                      />
+                    ))}
                   </div>
-                </div>
+                )}
+              </div>
+            )}
 
-                {/* Details section - displayed in a row on mobile for better space usage */}
-                <div className="md:hidden">
-                  <h4 className="text-sm font-medium mb-2">Details</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-md border p-2">
-                      <p className="text-xs text-muted-foreground">Category</p>
-                      <p className="text-sm font-medium">
-                        {selectedIssueData.category.charAt(0).toUpperCase() + selectedIssueData.category.slice(1)}
-                      </p>
-                    </div>
-                    <div className="rounded-md border p-2">
-                      <p className="text-xs text-muted-foreground">Status</p>
-                      <p className="text-sm font-medium flex items-center gap-1">
-                        <div className={`h-2 w-2 rounded-full ${getStatusColor(selectedIssueData.status)}`}></div>
-                        {getStatusLabel(selectedIssueData.status)}
-                      </p>
-                    </div>
-                    <div className="rounded-md border p-2">
-                      <p className="text-xs text-muted-foreground">Votes</p>
-                      <p className="text-sm font-medium">{selectedIssueData.votes}</p>
-                    </div>
-                    <div className="rounded-md border p-2">
-                      <p className="text-xs text-muted-foreground">Comments</p>
-                      <p className="text-sm font-medium">{selectedIssueData.comments}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Reporter info - compact on mobile */}
-                <div className="md:hidden">
-                  <h4 className="text-sm font-medium mb-2">Reported By</h4>
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src="/placeholder.svg?height=32&width=32" alt={selectedIssueData.reportedBy} />
-                      <AvatarFallback>{selectedIssueData.reportedBy.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium">{selectedIssueData.reportedBy}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(selectedIssueData.reportedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <CommentSection issueId={selectedIssueData.id} />
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium mb-1">Description</h4>
+                <p className="text-sm">{selectedIssueData.description}</p>
               </div>
 
-              {/* Sidebar content - only visible on desktop */}
-              <div className="hidden md:block md:space-y-6">
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Details</h4>
-                  <dl className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <dt className="text-muted-foreground">Category:</dt>
-                      <dd>
-                        {selectedIssueData.category.charAt(0).toUpperCase() + selectedIssueData.category.slice(1)}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-muted-foreground">Status:</dt>
-                      <dd className="flex items-center gap-1">
-                        <div className={`h-2 w-2 rounded-full ${getStatusColor(selectedIssueData.status)}`}></div>
-                        {getStatusLabel(selectedIssueData.status)}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-muted-foreground">Votes:</dt>
-                      <dd>{selectedIssueData.votes}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-muted-foreground">Comments:</dt>
-                      <dd>{selectedIssueData.comments}</dd>
-                    </div>
-                  </dl>
+              <div>
+                <h4 className="text-sm font-medium mb-1">Status</h4>
+                <div className="flex items-center gap-2">
+                  <div className={`h-2 w-2 rounded-full ${getStatusColor(selectedIssueData.status)}`}></div>
+                  <span className="text-sm">{getStatusLabel(selectedIssueData.status)}</span>
                 </div>
+              </div>
 
-                {selectedIssueData.images.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Images</h4>
-                    <div className="space-y-2">
-                      {selectedIssueData.images.map((image, index) => (
-                        <div key={index} className="overflow-hidden rounded-md border">
-                          <img
-                            src={image || "/placeholder.svg"}
-                            alt={`Image ${index + 1} for ${selectedIssueData.title}`}
-                            className="w-full object-cover"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Reported By</h4>
-                  <div className="flex items-center gap-2">
-                    <Avatar>
-                      <AvatarImage src="/placeholder.svg?height=32&width=32" alt={selectedIssueData.reportedBy} />
-                      <AvatarFallback>{selectedIssueData.reportedBy.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium">{selectedIssueData.reportedBy}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(selectedIssueData.reportedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              <div>
+                <h4 className="text-sm font-medium mb-1">Progress</h4>
+                <Progress value={selectedIssueData.progress} className="h-2" />
+                <p className="text-xs text-muted-foreground mt-1">{selectedIssueData.progress}% complete</p>
               </div>
             </div>
+
+            <DialogFooter className="flex justify-between">
+              <Button variant="outline" onClick={() => setSelectedIssue(null)}>
+                Close
+              </Button>
+              {isUserIssue(selectedIssueData) && selectedIssueData.status !== "completed" && (
+                <Button onClick={() => handleProgressIssue(selectedIssueData.id)}>Progress Issue</Button>
+              )}
+            </DialogFooter>
           </DialogContent>
         )}
       </Dialog>
+      <ViewCommentsDialog
+        issue={viewingCommentsForIssue}
+        open={viewingCommentsForIssue !== null}
+        onOpenChange={(open) => {
+          if (!open) setViewingCommentsForIssue(null)
+        }}
+      />
     </>
   )
 }
